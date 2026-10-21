@@ -5,7 +5,7 @@ existing tags as colored chips before the subject, and a conversation reader
 with a Back button and message actions. No Google affiliation or Gmail login is
 required. Your mailbox remains with its existing provider.
 
-Current version: **0.7.1**. Developed and manually checked on **Thunderbird 153.5
+Current version: **0.7.2**. Developed and manually checked on **Thunderbird 153.5
 ESR on macOS**. The privileged companion is deliberately restricted to Thunderbird
 153.x. Other Thunderbird versions, Windows, and Linux are unverified. This is not
 an iOS skin, and it does not add cross-client Exchange tag synchronization.
@@ -127,7 +127,7 @@ an explicit allowlist, excluding generated packages and profile recovery data.
 Create a repository with this directory's contents (not a Thunderbird profile
 and not the original development folder). The included MIT license allows reuse.
 Keep generated XPI files out of Git history; attach the source ZIP, checksum and,
-optionally, the built XPI as release assets tagged `v0.7.1`. The source ZIP is the
+optionally, the built XPI as release assets tagged `v0.7.2`. The source ZIP is the
 complete installable bundle; the XPI alone supplies only the companion features.
 Mark the first release experimental and include the compatibility/testing limits
 above. No repository has been published by the package preparation step.
@@ -253,3 +253,33 @@ the heading/search/footer. Ordering remains Thunderbird's existing tag order.
 Validation: 13 automated tests pass, including heading and footer native-command
 routing. In Thunderbird, L opens the panel, the heading/footer appear, searching
 filters labels, and Create new opens New Tag (cancelled without changing tags).
+
+## Conversation-wide labels (0.7.2)
+
+In an **open conversation**, L / Label as applies or removes the label on every
+message currently displayed by Thunderbird Conversations, including sent replies
+and messages stored in other folders. Checkbox checked/mixed states use that same
+scope. Existing tags and native storage are preserved. Writes are grouped by
+folder, using Thunderbird's own add/remove keyword operations; list selection is
+not changed to reach Sent. The label picker in the inbox list retains its previous
+native selected-message scope. This release does not merge PR #1.
+
+The extension resolves Conversations' message IDs with Conversations' own message
+manager. If the conversation is loading or any displayed header cannot be resolved,
+the picker asks you to retry rather than silently tagging only the inbox subset.
+If navigation or the conversation membership changes while the picker is open,
+the previous scope cannot be updated. Cross-folder writes are not atomic: an error
+is shown if a folder rejects an update; previously successful writes may remain.
+Create new in the conversation uses the same full-conversation scope.
+
+This acts on existing displayed messages, not future replies or undiscovered mail.
+It does not add cross-client Exchange tag synchronization. Individual controls in
+third-party add-ons may still use their own per-message/selection scope; use L or
+the skin's Label as button for conversation-wide tagging.
+
+Validation: all 15 automated tests pass, covering Inbox/Sent identity resolution,
+duplicate headers, incomplete scopes, exact per-folder add/remove operations,
+write failure propagation and prior label-picker behavior. In the isolated UI,
+the picker resolved the displayed conversation's native headers. Full end-to-end
+live discovery of an outgoing Sent reply was not verified: the fresh offline test
+profile's global index remained empty. No real-mail tags were changed for testing.

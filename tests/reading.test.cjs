@@ -159,3 +159,28 @@ test('picker filters, preserves focus, delegates bulk toggles and rejects change
   assert.deepEqual(nativeCommands,['cmd_manageTags','cmd_addTag']);
   controller.close();
 });
+test('conversation scope resolves exact Conversations IDs across Inbox and Sent, deduplicating copies of the same header',()=>{
+  const inbox={URI:'mailbox://test/Inbox'},sent={URI:'mailbox://test/Sent'};
+  const headers=new Map([[11,{folder:inbox,messageKey:1}],[12,{folder:inbox,messageKey:2}],[13,{folder:sent,messageKey:1}]]);
+  const doc=ids=>({querySelectorAll:()=>ids.map(id=>({getAttribute:()=>String(id)}))});
+  const messages=scope.conversationLabelMessages(doc([11,12,13,13]),id=>headers.get(id));
+  assert.equal(messages.length,3);assert.equal(messages[2].folder,sent);
+  assert.equal(scope.conversationLabelMessages(doc([]),id=>headers.get(id)),null);
+  assert.equal(scope.conversationLabelMessages(doc([11,999]),id=>headers.get(id)),null,'unresolved Sent must block partial labeling');
+  assert.equal(scope.conversationLabelMessages(doc(['bad']),id=>headers.get(id)),null);
+  assert.equal(scope.sameLabelMessages(messages,[messages[2],messages[0],messages[1]]),true);
+  assert.equal(scope.sameLabelMessages(messages,messages.slice(0,2)),false);
+});
+test('conversation tag add/remove writes exact headers to every folder, including sent replies',()=>{
+  const calls=[];
+  function folder(URI){return {URI,addKeywordsToMessages:(messages,key)=>calls.push(['add',URI,messages.map(m=>m.messageKey),key]),
+    removeKeywordsFromMessages:(messages,key)=>calls.push(['remove',URI,messages.map(m=>m.messageKey),key])};}
+  const inbox=folder('Inbox'),sent=folder('Sent');
+  const messages=[{folder:inbox,messageKey:1},{folder:sent,messageKey:1},{folder:inbox,messageKey:2}];
+  scope.applyConversationLabel(messages,'srds_sc',true);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)),[['add','Inbox',[1,2],'srds_sc'],['add','Sent',[1],'srds_sc']]);
+  calls.length=0;scope.applyConversationLabel(messages,'srds_sc',false);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)),[['remove','Inbox',[1,2],'srds_sc'],['remove','Sent',[1],'srds_sc']]);
+  sent.addKeywordsToMessages=()=>{throw Error('read only')};
+  assert.throws(()=>scope.applyConversationLabel(messages,'srds_sc',true),/read only/);
+});

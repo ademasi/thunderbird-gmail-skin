@@ -32,6 +32,41 @@ function labelAssignmentState(tag, messages) {
     mixed: count > 0 && count < messages.length};
 }
 
+// Conversations includes messages from Sent/Archive that are absent from gDBView.
+// Resolve its own message IDs with its own extension manager, never ours.
+function conversationLabelMessages(document, resolve) {
+  const lists = document.querySelectorAll('ul[is="message-tags"][msgid]');
+  if (!lists.length) return null; // Loading: never silently label a partial scope.
+  const messages = new Map();
+  for (const list of lists) {
+    const id = Number(list.getAttribute('msgid'));
+    if (!Number.isSafeInteger(id) || id <= 0) return null;
+    const message = resolve(id);
+    if (!message?.folder?.URI || message.messageKey === undefined) return null;
+    messages.set(JSON.stringify([message.folder.URI, message.messageKey]), message);
+  }
+  return [...messages.values()];
+}
+function sameLabelMessages(first, second) {
+  if (!first || !second || first.length !== second.length) return false;
+  const keys = new Set(first.map(message => JSON.stringify([message.folder?.URI, message.messageKey])));
+  return second.every(message => keys.has(JSON.stringify([message.folder?.URI, message.messageKey])));
+}
+function applyConversationLabel(messages, key, add) {
+  const folders = new Map();
+  for (const message of messages) {
+    const uri = message.folder.URI;
+    if (!folders.has(uri)) folders.set(uri, {folder:message.folder, messages:[]});
+    folders.get(uri).messages.push(message);
+  }
+  // Same native folder operations used by Thunderbird's tag command; no selection
+  // manipulation, message copying, or account/provider-specific tag storage.
+  for (const {folder,messages} of folders.values()) {
+    if (add) folder.addKeywordsToMessages(messages, key);
+    else folder.removeKeywordsFromMessages(messages, key);
+  }
+}
+
 function installReadingMode(win) {
   const doc = win.document;
   const layout = doc.getElementById('paneLayout');
@@ -230,16 +265,43 @@ function installReadingMode(win) {
     const button = doc.createElement('button'); button.type = 'button'; button.textContent = title;
     button.addEventListener('click', () => {
       if (command === 'cmd_addTag' && !sameSelection()) { tagPopup.hidePopup(); return; }
-      tagPopup.hidePopup(); win.commandController.doCommand(command);
+      tagPopup.hidePopup();
+      if (command === 'cmd_addTag' && pickerConversation) {
+        win.top.openDialog('chrome://messenger/content/newTagDialog.xhtml', '',
+          'chrome,titlebar,modal,centerscreen', {result:'', okCallback:(name, color) => {
+            if (!sameSelection()) return false;
+            MailServices.tags.addTag(name, color, '');
+            applyPickerLabel(MailServices.tags.getKeyForTag(name), true);
+            return true;
+          }});
+      } else win.commandController.doCommand(command);
     });
     footer.append(button);
   }
   picker.append(heading, searchBox, tagList, empty, footer); tagPopup.append(picker);
-  let pickerMessages = [], pickerTags = [], pickerOpen = false, returnFocus = null;
+  let pickerMessages = [], pickerSelection = [], pickerTags = [], pickerOpen = false, returnFocus = null;
+  let pickerConversation = null;
+  function conversationDocument() {
+    if (!active) return null;
+    const document = doc.getElementById('multiMessageBrowser')?.contentDocument;
+    return document?.documentURI === 'chrome://conversations/content/experiment-api/stub.html' ? document : null;
+  }
+  function resolveConversation(document) {
+    try {
+      const { ExtensionParent } = ChromeUtils.importESModule('resource://gre/modules/ExtensionParent.sys.mjs');
+      const extension = ExtensionParent.GlobalManager.extensionMap.get('gconversation@xulforum.org');
+      return conversationLabelMessages(document, id => extension?.messageManager?.get(id));
+    } catch (_) { return null; }
+  }
+  function applyPickerLabel(key, add) {
+    if (pickerConversation) applyConversationLabel(pickerMessages, key, add);
+    else win.commandController._toggleMessageTag(key, add);
+  }
   function sameSelection() {
     const selected = win.gDBView?.getSelectedMsgHdrs() || [];
-    return selected.length === pickerMessages.length && selected.every((message, index) =>
-      message.messageKey === pickerMessages[index].messageKey && message.folder?.URI === pickerMessages[index].folder?.URI);
+    if (!sameLabelMessages(Array.from(selected), pickerSelection)) return false;
+    return !pickerConversation || (conversationDocument() === pickerConversation &&
+      sameLabelMessages(resolveConversation(pickerConversation), pickerMessages));
   }
   function renderTags() {
     tagList.replaceChildren();
@@ -253,8 +315,17 @@ function installReadingMode(win) {
       row.append(checkbox, name); tagList.append(row);
       checkbox.addEventListener('change', () => {
         if (!sameSelection()) { tagPopup.hidePopup(); return; }
-        win.commandController._toggleMessageTag(tag.key, checkbox.checked);
-        checkbox.indeterminate = false;
+        try {
+          applyPickerLabel(tag.key, checkbox.checked);
+          checkbox.indeterminate = false;
+        } catch (error) {
+          // Cross-folder writes are not atomic. Keep the picker open and report
+          // failure instead of implying that every message was updated.
+          const state = labelAssignmentState(tag, pickerMessages);
+          checkbox.checked = state.checked; checkbox.indeterminate = state.mixed;
+          empty.hidden = false; empty.textContent = 'Could not update every message. Check labels and try again.';
+          console.error('Conversation label update failed:', error);
+        }
       });
     }
     empty.hidden = tagList.childElementCount > 0;
@@ -262,7 +333,18 @@ function installReadingMode(win) {
   function showLabels(anchor) {
     const messages = win.gDBView?.getSelectedMsgHdrs() || [];
     if (!messages.length) return;
-    pickerMessages = Array.from(messages);
+    pickerSelection = Array.from(messages);
+    pickerConversation = conversationDocument();
+    pickerMessages = pickerConversation ? resolveConversation(pickerConversation) : pickerSelection;
+    if (pickerConversation && pickerMessages && !pickerSelection.every(selected =>
+      pickerMessages.some(message => message.messageKey === selected.messageKey && message.folder.URI === selected.folder?.URI))) pickerMessages = null;
+    if (!pickerMessages) {
+      pickerTags = []; pickerMessages = []; search.disabled = true;
+      returnFocus = doc.activeElement; search.value = ''; renderTags();
+      empty.hidden = false; empty.textContent = 'Conversation is still loading. Close this panel and try again.';
+      tagPopup.openPopup(anchor, 'after_start', 0, 0, false, false); return;
+    }
+    search.disabled = false; empty.textContent = 'No matching labels';
     pickerTags = MailServices.tags.getAllTags();
     returnFocus = doc.activeElement; search.value = ''; renderTags();
     tagPopup.openPopup(anchor, 'after_start', 0, 0, false, false);
