@@ -44,6 +44,12 @@ function installInlineLabels(window = globalThis.window, MailServices = globalTh
       font: 12px/16px Arial, sans-serif; border-radius: 4px; padding: 0 5px;
       background: var(--gm-chip-bg); color: var(--gm-chip-fg);
     }
+    @media (prefers-color-scheme: dark) {
+      #threadTree .gm-inline-label {
+        background:color-mix(in srgb, var(--gm-chip-bg) 35%, #202124);
+        color:#f1f3f4;
+      }
+    }
     @media (prefers-contrast) {
       #threadTree .gm-inline-label { background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
     }

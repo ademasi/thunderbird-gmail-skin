@@ -100,11 +100,11 @@ function installReadingMode(win) {
     @media not (prefers-contrast) {
       :root #threadTree tbody > tr.table-layout.selected,
       :root #threadTree tbody > tr.table-layout.selected:hover {
-        background:#c2dbff !important; color:#202124 !important;
-        box-shadow:inset 0 -1px #b5cfee !important;
+        background:var(--gm-selected, #c2dbff) !important; color:var(--gm-ink, #202124) !important;
+        box-shadow:inset 0 -1px var(--layout-border-0, #b5cfee) !important;
       }
       :root #threadTree .tree-view-row-select img,
-      :root #threadTree .tree-view-header-select img { color:#444746 !important; }
+      :root #threadTree .tree-view-header-select img { color:var(--layout-color-1, #444746) !important; }
     }
   `;
   doc.head.append(style);

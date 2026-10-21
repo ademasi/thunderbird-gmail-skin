@@ -148,3 +148,45 @@
     border-bottom: 1px solid #e8eaed !important;
   }
 }
+
+
+/* Thunderbird's Light/Dark/System theme controls prefers-color-scheme. */
+@media (prefers-color-scheme: dark) and (prefers-contrast: no-preference) {
+  :root {
+    color-scheme: dark !important;
+    --gm-shell: #202124;
+    --gm-read: #292a2d;
+    --gm-ink: #e8eaed;
+    --gm-selected: #394f70;
+    --layout-background-0: #202124 !important;
+    --layout-background-1: #292a2d !important;
+    --layout-color-0: #e8eaed !important;
+    --layout-color-1: #bdc1c6 !important;
+    --layout-border-0: #45474a !important;
+    --sidebar-background: #202124 !important;
+    --sidebar-color: #e8eaed !important;
+    --tree-view-bg: #292a2d !important;
+    --tree-view-color: #e8eaed !important;
+    --unread-color: #f1f3f4 !important;
+    --treeitem-background-selected: #394f70 !important;
+    --treeitem-background-active: #394f70 !important;
+    --treeitem-background-hover: #35373b !important;
+    --treeitem-text-active: #e8eaed !important;
+    --listbox-focused-selected-bg: #394f70 !important;
+    --listbox-selected-color: #e8eaed !important;
+    --thread-pane-flag-fill: #8ab4f8 !important;
+    --thread-pane-flag-stroke: #8ab4f8 !important;
+  }
+  #folderPaneWriteMessage { background:#004a77 !important; color:#c2e7ff !important; }
+  #folderTree li.selected > .container { background:#394f70 !important; color:#e8eaed !important; }
+  #threadPane, #threadPaneHeaderBar, #quick-filter-bar, #threadTree thead,
+  #messageHeader { background:#202124 !important; color:#e8eaed !important; border-color:#45474a !important; }
+  #threadTree tbody > tr.table-layout { box-shadow:inset 0 -1px #3c4043 !important; }
+  #threadTree tbody > tr.table-layout[data-properties~="unread"] { background:#202124 !important; }
+  #threadTree tbody > tr.table-layout:hover {
+    background:#35373b !important; box-shadow:inset 0 1px #45474a, inset 0 -1px #45474a !important;
+  }
+  #threadTree tbody > tr.table-layout.selected { background:var(--gm-selected) !important; }
+  #threadTree tbody > tr:focus-visible { outline-color:#8ab4f8 !important; }
+  #threadTree .tagscol-column .cell-text:not(:empty) { background:#45474a !important; color:#e8eaed !important; }
+}

@@ -5,14 +5,14 @@ existing tags as colored chips before the subject, and a conversation reader
 with a Back button and message actions. No Google affiliation or Gmail login is
 required. Your mailbox remains with its existing provider.
 
-Current version: **0.5.0**. Developed and manually checked on **Thunderbird 153.5
+Current version: **0.6.0**. Developed and manually checked on **Thunderbird 153.5
 ESR on macOS**. The privileged companion is deliberately restricted to Thunderbird
 153.x. Other Thunderbird versions, Windows, and Linux are unverified. This is not
 an iOS skin, and it does not add cross-client Exchange tag synchronization.
 
 ## What is included
 
-- Light Gmail-inspired shell, compose button, selections, rows, and stars.
+- Light/dark Gmail-inspired shell, compose button, selections, rows, and stars.
 - Existing Thunderbird tag names/colors displayed as chips, without migration.
 - Hidden From/Subject header text and Spam column; UI font size follows Thunderbird.
 - Click a message to replace the list with the reader; Back restores the list.
@@ -45,8 +45,8 @@ are not bundled or automatically installed.
    ```
 
    On Windows use `py -3` instead of `python3` if appropriate.
-4. Restart Thunderbird. Review any add-on permission prompt. Select the built-in
-   Light theme, Classic layout, Compact density, and **Table View**. Enable threaded
+4. Restart Thunderbird. Review any add-on permission prompt. Select a built-in
+   Light, Dark, or System theme, Classic layout, Compact density, and **Table View**. Enable threaded
    sorting. The companion starts with the message preview collapsed.
 5. Optionally enable Tags folder-pane mode and the folder-pane header.
 
@@ -127,7 +127,7 @@ an explicit allowlist, excluding generated packages and profile recovery data.
 Create a repository with this directory's contents (not a Thunderbird profile
 and not the original development folder). The included MIT license allows reuse.
 Keep generated XPI files out of Git history; attach the source ZIP, checksum and,
-optionally, the built XPI as release assets tagged `v0.5.0`. The source ZIP is the
+optionally, the built XPI as release assets tagged `v0.6.0`. The source ZIP is the
 complete installable bundle; the XPI alone supplies only the companion features.
 Mark the first release experimental and include the compatibility/testing limits
 above. No repository has been published by the package preparation step.
@@ -198,3 +198,20 @@ hook, timers, and display changes on shutdown. Nine tests pass, including local
 midnight/year boundaries, invalid dates, virtual-row reuse, tooltip translation,
 and restoring native strings. Live Thunderbird cells were verified to display
 short dates with full timestamp tooltips.
+
+
+## Dark mode (0.6.0)
+
+Choose **Tools → Add-ons and Themes → Themes → Dark → Enable**. Light restores
+the light palette; System theme — auto follows the operating-system appearance.
+The skin responds to the theme's `prefers-color-scheme` setting without a restart
+once its CSS is installed. Dark surfaces cover the sidebar, message list,
+heading, compose button, selection, and reading/bulk action bars. Inline label
+chips use darker tints with light text; tag definitions and colors are unchanged.
+High-contrast mode retains native colors.
+
+Conversations supplies its own existing dark header/card styles. The skin does
+not invert or rewrite email HTML bodies: those remain subject to Thunderbird's
+message-color settings and the message author's explicit colors. Third-party
+add-on toolbar icons and custom themes may need their own adjustments.
+Nine existing regression tests pass. Manually verified live Light/Dark switching, dark list/labels, dark selected rows and bulk toolbar, loaded conversation cards and reader toolbar, Back navigation, and return to Light. The original Light theme was restored after testing.
