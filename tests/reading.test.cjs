@@ -95,3 +95,60 @@ test('checkbox selection shows bulk toolbar and archives native selection withou
   assert.equal(toolbar.hidden,true);assert.equal(selected.length,0);
   controller.close();assert.equal(columns.find(c=>c.id==='selectCol').hidden,true);
 });
+test('L is restricted to unmodified mail browsing, never text entry or composition',()=>{
+  const event={key:'l',target:{closest:()=>null}};
+  assert.equal(scope.isLabelShortcut(event),true);
+  for(const key of ['ctrlKey','metaKey','altKey','shiftKey','repeat','isComposing','defaultPrevented'])
+    assert.equal(scope.isLabelShortcut({...event,[key]:true}),false,key);
+  assert.equal(scope.isLabelShortcut({...event,key:'k'}),false);
+  assert.equal(scope.isLabelShortcut({...event,target:{isContentEditable:true}}),false);
+  assert.equal(scope.isLabelShortcut({...event,target:{closest:()=>({})}}),false);
+});
+test('label search supports substrings, case, spaces, Unicode and literal punctuation',()=>{
+  assert.equal(scope.labelMatchesQuery('Project / UniNE',' unine '),true);
+  assert.equal(scope.labelMatchesQuery('ＡＢＣ','abc'),true);
+  assert.equal(scope.labelMatchesQuery('conf[2026]','['),true);
+  assert.equal(scope.labelMatchesQuery('Project',''),true);
+  assert.equal(scope.labelMatchesQuery('Project','other'),false);
+});
+test('label checkboxes distinguish all, some, none, legacy labels and exact keys',()=>{
+  const msg=(keywords,label=0)=>({getStringProperty:()=>keywords,label});
+  const state=messages=>JSON.parse(JSON.stringify(scope.labelAssignmentState({key:'one'},messages)));
+  assert.deepEqual(state([msg('one'),msg('one two')]),{checked:true,mixed:false});
+  assert.deepEqual(state([msg('one'),msg('two')]),{checked:false,mixed:true});
+  assert.deepEqual(state([msg('onetwo')]),{checked:false,mixed:false});
+  assert.deepEqual(state([]),{checked:false,mixed:false});
+  assert.equal(scope.labelAssignmentState({key:'$label1'},[msg('',1)]).checked,true);
+});
+test('picker filters, preserves focus, delegates bulk toggles and rejects changed selection',()=>{
+  const nodes=[];
+  function el(name){const events={}, attrs={};const n={name,events,children:[],style:{},value:'',isConnected:true,
+    classList:{add(){},remove(){}},setAttribute(k,v){attrs[k]=v},getAttribute:k=>attrs[k],
+    append(...children){this.children.push(...children)},prepend(x){this.children.unshift(x)},
+    replaceChildren(...children){this.children=children},get childElementCount(){return this.children.length},
+    addEventListener(k,f){(events[k]??=[]).push(f)},removeEventListener(){},remove(){},
+    focus(){doc.activeElement=this},querySelectorAll(){return this.children.flatMap(x=>x.children.filter(y=>y.name==='input'))},
+    openPopup(){this.events.popupshown?.forEach(f=>f())},hidePopup(){this.events.popuphidden?.forEach(f=>f())}};
+    nodes.push(n);return n;}
+  const layout=el(),tree=el(),folderTree=el(),threadPane=el();
+  const doc={activeElement:tree,getElementById:id=>({paneLayout:layout,threadTree:tree,folderTree,threadPane})[id],
+    createElement:el,createElementNS:(_ns,name)=>el(name),createXULElement:el,head:el(),documentElement:el()};
+  const messages=[{messageKey:1,folder:{URI:'inbox'},getStringProperty:()=> 'one'},
+    {messageKey:2,folder:{URI:'inbox'},getStringProperty:()=> ''}];let selected=messages;const calls=[];
+  scope.Ci={nsIMsgFolderNotificationService:{msgsMoveCopyCompleted:1}};
+  scope.MailServices={mfn:{addListener(){},removeListener(){}},tags:{getAllTags:()=>[
+    {key:'one',tag:'Project One',color:'#ff0000'},{key:'two',tag:'Other'}]}};
+  const win={document:doc,gDBView:{getSelectedMsgHdrs:()=>selected},commandController:{_toggleMessageTag:(...args)=>calls.push(args)},
+    addEventListener(){},removeEventListener(){}};
+  const controller=scope.installReadingMode(win);
+  nodes.find(n=>n.title==='Labels… (L)').events.click[0]();
+  const search=nodes.find(n=>n.type==='search');assert.equal(doc.activeElement,search);
+  const first=nodes.find(n=>n.type==='checkbox');assert.equal(first.indeterminate,true);
+  first.checked=true;first.events.change[0]();assert.deepEqual(calls,[['one',true]]);
+  first.checked=false;first.events.change[0]();assert.deepEqual(calls[1],['one',false]);
+  search.value='Other';search.events.input[0]();
+  const list=nodes.find(n=>n.className==='gm-label-list');assert.equal(list.childElementCount,1);
+  const other=list.children[0].children[0];selected=[messages[0]];
+  other.checked=true;other.events.change[0]();assert.equal(calls.length,2);assert.equal(doc.activeElement,tree);
+  controller.close();
+});

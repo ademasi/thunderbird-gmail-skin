@@ -5,7 +5,7 @@ existing tags as colored chips before the subject, and a conversation reader
 with a Back button and message actions. No Google affiliation or Gmail login is
 required. Your mailbox remains with its existing provider.
 
-Current version: **0.6.0**. Developed and manually checked on **Thunderbird 153.5
+Current version: **0.7.0**. Developed and manually checked on **Thunderbird 153.5
 ESR on macOS**. The privileged companion is deliberately restricted to Thunderbird
 153.x. Other Thunderbird versions, Windows, and Linux are unverified. This is not
 an iOS skin, and it does not add cross-client Exchange tag synchronization.
@@ -127,7 +127,7 @@ an explicit allowlist, excluding generated packages and profile recovery data.
 Create a repository with this directory's contents (not a Thunderbird profile
 and not the original development folder). The included MIT license allows reuse.
 Keep generated XPI files out of Git history; attach the source ZIP, checksum and,
-optionally, the built XPI as release assets tagged `v0.6.0`. The source ZIP is the
+optionally, the built XPI as release assets tagged `v0.7.0`. The source ZIP is the
 complete installable bundle; the XPI alone supplies only the companion features.
 Mark the first release experimental and include the compatibility/testing limits
 above. No repository has been published by the package preparation step.
@@ -215,3 +215,27 @@ not invert or rewrite email HTML bodies: those remain subject to Thunderbird's
 message-color settings and the message author's explicit colors. Third-party
 add-on toolbar icons and custom themes may need their own adjustments.
 Nine existing regression tests pass. Manually verified live Light/Dark switching, dark list/labels, dark selected rows and bulk toolbar, loaded conversation cards and reader toolbar, Back navigation, and return to Light. The original Light theme was restored after testing.
+
+## Searchable label picker (0.7.0)
+
+Select one or more messages, or open a conversation, then press **L** (without modifiers).
+The Labels toolbar button opens the same picker. Type part of a label name to filter;
+search ignores case and supports Unicode names. Use Up/Down to navigate, Space to
+check or uncheck the focused label, and Escape or a click outside to close.
+
+Changes apply immediately through Thunderbird's native tag command to the current
+selection. Checked means every selected message has the label; mixed means only
+some do. Checking a mixed label applies it to all selected messages. Existing tag
+names, keys, colors, and assignments are preserved. Changing folders or selection
+closes the picker so it cannot act on a stale selection.
+
+Bare L replaces Thunderbird's Ignore Subthread shortcut in the mail browsing pane.
+It does not override typing in search fields/editors, modified shortcuts, or other
+tabs. This shortcut is part of the desktop skin; it does not add an iOS shortcut or
+change the account's existing tag synchronization support.
+
+Validation: 13 automated tests pass, including search, shortcut guards, legacy/mixed
+tag states, native bulk add/remove delegation, stale selection rejection and focus
+restoration. Live Thunderbird checks cover opening from list/conversation views,
+search matches/no matches, arrow navigation and Escape. Real mail tags were not
+changed during testing.

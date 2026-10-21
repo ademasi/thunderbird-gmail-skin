@@ -13,6 +13,25 @@ function readingMessageWasMoved(previous, move, messages) {
     message.folder?.URI === previous.message.folderURI));
 }
 
+// Bare L overrides Thunderbird's Ignore Subthread only in mail browsing UI.
+function isLabelShortcut(event) {
+  return event.key?.toLowerCase() === 'l' && !event.ctrlKey && !event.metaKey &&
+    !event.altKey && !event.shiftKey && !event.repeat && !event.isComposing &&
+    !event.defaultPrevented && !event.target?.isContentEditable &&
+    !event.target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], search-textbox');
+}
+function labelMatchesQuery(name, query) {
+  return name.normalize('NFKC').toLocaleLowerCase().includes(query.trim().normalize('NFKC').toLocaleLowerCase());
+}
+function labelAssignmentState(tag, messages) {
+  const count = messages.filter(message => {
+    const keys = (message.getStringProperty('keywords') || '').split(/\s+/);
+    return keys.includes(tag.key) || (message.label && tag.key === `$label${message.label}`);
+  }).length;
+  return {checked: messages.length > 0 && count === messages.length,
+    mixed: count > 0 && count < messages.length};
+}
+
 function installReadingMode(win) {
   const doc = win.document;
   const layout = doc.getElementById('paneLayout');
@@ -189,23 +208,109 @@ function installReadingMode(win) {
   });
   action('Move to…', 'M3 6h7l2 2h9v12H3z M12 10v7 m-3-3 3 3 3-3',
     button => movePopup.openPopup(button, 'after_start', 0, 0, false, false));
-  const tagPopup = doc.createXULElement('menupopup');
+  const tagPopup = doc.createXULElement('panel');
+  tagPopup.setAttribute('type', 'arrow');
+  tagPopup.setAttribute('noautofocus', 'true');
+  tagPopup.setAttribute('aria-label', 'Labels');
   doc.documentElement.append(tagPopup); popups.push(tagPopup);
-  action('Labels…', 'M3 4h9l9 8-9 8H3z M7 10v4', button => {
-    tagPopup.replaceChildren();
-    const messages = win.gDBView?.getSelectedMsgHdrs() || [];
-    const assignments = messages.map(message => new Set((message.getStringProperty('keywords') || '').split(' ')));
-    for (const tag of MailServices.tags.getAllTags()) {
-      const item = doc.createXULElement('menuitem');
-      item.setAttribute('type', 'checkbox'); item.setAttribute('label', tag.tag);
-      if (assignments.length && assignments.every(keys => keys.has(tag.key))) item.setAttribute('checked', 'true');
-      if (tag.color) item.style.color = tag.color;
-      item.addEventListener('command', () =>
-        win.commandController._toggleMessageTag(tag.key, item.getAttribute('checked') === 'true'));
-      tagPopup.append(item);
+  const picker = doc.createElement('div');
+  picker.className = 'gm-label-picker';
+  const heading = doc.createElement('div'); heading.textContent = 'Labels';
+  const search = doc.createElement('input');
+  search.type = 'search'; search.placeholder = 'Search labels';
+  search.setAttribute('aria-label', 'Search labels');
+  const tagList = doc.createElement('div'); tagList.className = 'gm-label-list';
+  const empty = doc.createElement('div'); empty.textContent = 'No matching labels';
+  empty.setAttribute('role', 'status');
+  picker.append(heading, search, tagList, empty); tagPopup.append(picker);
+  let pickerMessages = [], pickerTags = [], pickerOpen = false, returnFocus = null;
+  function sameSelection() {
+    const selected = win.gDBView?.getSelectedMsgHdrs() || [];
+    return selected.length === pickerMessages.length && selected.every((message, index) =>
+      message.messageKey === pickerMessages[index].messageKey && message.folder?.URI === pickerMessages[index].folder?.URI);
+  }
+  function renderTags() {
+    tagList.replaceChildren();
+    for (const tag of pickerTags.filter(tag => labelMatchesQuery(tag.tag, search.value))) {
+      const row = doc.createElement('label'); row.className = 'gm-label-option';
+      const checkbox = doc.createElement('input'); checkbox.type = 'checkbox';
+      const state = labelAssignmentState(tag, pickerMessages);
+      checkbox.checked = state.checked; checkbox.indeterminate = state.mixed;
+      checkbox.setAttribute('aria-label', tag.tag);
+      const dot = doc.createElement('span'); dot.className = 'gm-label-dot';
+      dot.style.backgroundColor = tag.color || 'currentColor';
+      const name = doc.createElement('span'); name.textContent = tag.tag;
+      row.append(checkbox, dot, name); tagList.append(row);
+      checkbox.addEventListener('change', () => {
+        if (!sameSelection()) { tagPopup.hidePopup(); return; }
+        win.commandController._toggleMessageTag(tag.key, checkbox.checked);
+        checkbox.indeterminate = false;
+      });
     }
-    tagPopup.openPopup(button, 'after_start', 0, 0, false, false);
+    empty.hidden = tagList.childElementCount > 0;
+  }
+  function showLabels(anchor) {
+    const messages = win.gDBView?.getSelectedMsgHdrs() || [];
+    if (!messages.length) return;
+    pickerMessages = Array.from(messages);
+    pickerTags = MailServices.tags.getAllTags();
+    returnFocus = doc.activeElement; search.value = ''; renderTags();
+    tagPopup.openPopup(anchor, 'after_start', 0, 0, false, false);
+  }
+  const labelsButton = action('Labels… (L)', 'M3 4h9l9 8-9 8H3z M7 10v4', showLabels);
+  search.addEventListener('input', renderTags);
+  tagPopup.addEventListener('popupshown', () => { pickerOpen = true; search.focus(); });
+  tagPopup.addEventListener('popuphidden', () => {
+    pickerOpen = false;
+    if (returnFocus?.isConnected) returnFocus.focus({preventScroll:true});
   });
+  picker.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); tagPopup.hidePopup(); }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      const options = [search, ...tagList.querySelectorAll('input')];
+      const index = options.indexOf(doc.activeElement);
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      options[(index + step + options.length) % options.length]?.focus();
+      event.preventDefault(); event.stopPropagation();
+    }
+  });
+  // Capture in each document of this mail pane, including Conversations' browser.
+  // Other tabs, compose editors, search fields and modified shortcuts are untouched.
+  const keyDocuments = new Set();
+  function labelKey(event) {
+    if (!isLabelShortcut(event) || pickerOpen || closed) return;
+    const tabmail = win.top.document.getElementById('tabmail');
+    if (tabmail && tabmail.currentAbout3Pane !== win) return;
+    if (!win.gDBView?.getSelectedMsgHdrs().length) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    showLabels(toolbar.hidden ? tree : labelsButton);
+  }
+  function watchKeys(document) {
+    if (!document || keyDocuments.has(document)) return;
+    keyDocuments.add(document); document.addEventListener('keydown', labelKey, true);
+    for (const browser of document.querySelectorAll('browser, iframe')) {
+      try { watchKeys(browser.contentDocument); } catch (_) {}
+    }
+  }
+  function documentLoaded(event) { if (event.target?.nodeType === 9) watchKeys(event.target); }
+  // Tests without a browser document do not need nested key routing.
+  if (doc.querySelectorAll) {
+    watchKeys(doc); win.addEventListener('load', documentLoaded, true);
+  }
+  style.textContent += `
+    .gm-label-picker { width:300px; max-width:80vw; padding:12px; box-sizing:border-box;
+      background:var(--layout-background-0, white); color:var(--layout-color-0, #202124); font:menu; }
+    .gm-label-picker > div:first-child { font-weight:600; margin-bottom:10px; }
+    .gm-label-picker > input { box-sizing:border-box; width:100%; padding:8px;
+      color:inherit; background:var(--layout-background-1, #f1f3f4);
+      border:1px solid var(--layout-border-0, #dadce0); border-radius:4px; }
+    .gm-label-list { max-height:320px; overflow-y:auto; margin-top:8px; }
+    .gm-label-option { display:flex; align-items:center; gap:10px; padding:8px; cursor:pointer; }
+    .gm-label-option:hover, .gm-label-option:focus-within { background:var(--treeitem-background-hover, #e9eef6); }
+    .gm-label-option input { width:18px; height:18px; margin:0; flex:none; }
+    .gm-label-dot { width:10px; height:10px; border-radius:2px; flex:none; }
+    .gm-label-option > span:last-child { overflow-wrap:anywhere; }
+  `;
   layout.append(toolbar);
   function syncBulk() {
     if (active || closed || !threadPane) return;
@@ -226,7 +331,7 @@ function installReadingMode(win) {
     tree.selectedIndices = [];
     syncBulk();
   }
-  function selectionChanged() { syncBulk(); }
+  function selectionChanged() { tagPopup.hidePopup(); syncBulk(); }
   function selectionClick(event) {
     if (active) return;
     if (event.target.closest('.select-column, .selectcol-column, #selectCol') ||
@@ -300,7 +405,7 @@ function installReadingMode(win) {
     }
   };
   MailServices.mfn.addListener(moveListener, Ci.nsIMsgFolderNotificationService.msgsMoveCopyCompleted);
-  function folderChange() { leave(false); bulk = false; toolbar.hidden = true; threadPane?.classList.remove('gm-bulk-selecting'); }
+  function folderChange() { tagPopup.hidePopup(); leave(false); bulk = false; toolbar.hidden = true; threadPane?.classList.remove('gm-bulk-selecting'); }
   function backClick() { if (active) leave(true); else clearBulk(); }
   tree.addEventListener('click', selectionClick, true);
   tree.addEventListener('select', selectionChanged);
@@ -325,6 +430,9 @@ function installReadingMode(win) {
     tree.removeEventListener('dblclick', doubleClick, true);
     folderTree.removeEventListener('select', folderChange, true);
     back.removeEventListener('click', backClick);
+    for (const document of keyDocuments) document.removeEventListener('keydown', labelKey, true);
+    win.removeEventListener('load', documentLoaded, true);
+    tagPopup.hidePopup?.();
     for (const popup of popups) popup.remove();
     toolbar.remove(); style.remove();
     win.removeEventListener('unload', close);

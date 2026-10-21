@@ -2,13 +2,33 @@
   "manifest_version": 2,
   "name": "Gmail-style Inline Labels",
   "description": "Gmail-inspired message list, native tag chips, conversation navigation, bulk actions, compact dates, and theme-aware styling.",
-  "version": "0.6.0",
-  "browser_specific_settings": {"gecko": {"id": "inline-labels@local.gmail-skin", "strict_min_version": "153.0", "strict_max_version": "153.*"}},
-  "background": {"scripts": ["background.js"]},
+  "version": "0.7.0",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "inline-labels@local.gmail-skin",
+      "strict_min_version": "153.0",
+      "strict_max_version": "153.*"
+    }
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
   "experiment_apis": {
     "inlineLabels": {
       "schema": "experiments/schema.json",
-      "parent": {"scopes": ["addon_parent"], "paths": [["inlineLabels"]], "script": "experiments/api.js"}
+      "parent": {
+        "scopes": [
+          "addon_parent"
+        ],
+        "paths": [
+          [
+            "inlineLabels"
+          ]
+        ],
+        "script": "experiments/api.js"
+      }
     }
   }
 }
