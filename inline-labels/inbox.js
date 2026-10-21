@@ -93,11 +93,102 @@ function installComposeLabel(doc) {
   }};
 }
 
+function installResponsiveColumns(win) {
+  const tree = win.document.getElementById('threadTree');
+  if (!tree || !win.ResizeObserver) return {close(){}};
+  const saved = new Map();
+  const preferred = new Map();
+  let manualWidth = null;
+  let closed = false, frame = null;
+  function set(element, name, value) {
+    if (!saved.has(element)) saved.set(element,new Map());
+    const properties = saved.get(element);
+    if (!properties.has(name)) properties.set(name,[element.style.getPropertyValue(name),element.style.getPropertyPriority(name)]);
+    element.style.setProperty(name,value,'important');
+  }
+  function restore() {
+    for (const [element,properties] of saved) for (const [name,[value,priority]] of properties) {
+      if (value) element.style.setProperty(name,value,priority); else element.style.removeProperty(name);
+    }
+    saved.clear();
+  }
+  function fit() {
+    frame = null;
+    if (closed || manualWidth === tree.clientWidth) return;
+    manualWidth = null;
+    const table = tree.table;
+    const width = tree.clientWidth;
+    if (!table || width <= 0) return;
+    const headers = [...table.querySelectorAll('thead th')].filter(header =>
+      !header.hidden && win.getComputedStyle(header).display !== 'none');
+    const subject = headers.find(header=>header.id==='subjectCol');
+    const date = headers.find(header=>header.id==='dateCol');
+    if (!subject || !date) return;
+    const icons = headers.filter(header=>header.dataset.type==='icon');
+    const fixed = icons.reduce((sum,header)=>sum+header.getBoundingClientRect().width,0);
+    const others = headers.filter(header=>header!==subject && header!==date && !icons.includes(header));
+    const dateWidth = preferred.get('dateCol') ?? Math.max(88,8*(parseFloat(win.getComputedStyle(tree).fontSize)||14));
+    const space = Math.max(0,width-fixed-dateWidth-4);
+    const desired = others.map(header => preferred.get(header.id) ?? Math.min(180,width*.18));
+    const total = desired.reduce((sum,value)=>sum+value,0);
+    const budget = Math.max(0,space-Math.min(100,space*.4));
+    const ratio = total > budget ? budget/total : 1;
+    const widths = desired.map(value=>value*ratio);
+    const subjectWidth = Math.max(0,space-widths.reduce((sum,value)=>sum+value,0));
+    for (const [header,pixels] of [[date,dateWidth],[subject,subjectWidth],...others.map((header,index)=>[header,widths[index]])]) {
+      set(header,'width',`${pixels}px`); set(header,'inline-size',`${pixels}px`);
+      set(header,'min-inline-size','0');
+    }
+    set(table,'width',`${width}px`); set(table,'inline-size',`${width}px`);
+    set(table,'max-inline-size',`${width}px`); set(table,'min-inline-size','0');
+    set(table,'flex',`0 1 ${width}px`);
+  }
+  function schedule() { if (!closed && frame === null) frame=win.requestAnimationFrame(fit); }
+  function manualResize(event) {
+    if (!event.target.closest?.('hr[is="pane-splitter"]')) return;
+    // Hand the native splitter the CURRENT geometry, never the old wide layout.
+    manualWidth = tree.clientWidth;
+    if (frame !== null) { win.cancelAnimationFrame(frame); frame = null; }
+    const headers = [...(tree.table?.querySelectorAll('thead th') || [])].filter(header =>
+      !header.hidden && header.dataset.type !== 'icon' && win.getComputedStyle(header).display !== 'none');
+    const widths = headers.map(header=>header.getBoundingClientRect().width);
+    headers.forEach((header,index) => {
+      const variable = `--${header.id}Splitter-width`;
+      set(header,variable,`${widths[index]}px`);
+      set(header,'width',`var(${variable})`);
+      set(header,'inline-size',`var(${variable})`);
+    });
+  }
+  function resizedColumn(event) {
+    const {column,splitter} = event.detail || {};
+    if (column && Number.isFinite(splitter?.width) && splitter.width > 0) {
+      preferred.set(column,splitter.width);
+      const header = [...(tree.table?.querySelectorAll('thead th') || [])].find(item=>item.id===column);
+      const properties = saved.get(header);
+      if (properties) {
+        // Keep the native choice when removing our temporary sizing styles.
+        properties.set(`--${column}Splitter-width`,[`${splitter.width}px`,'']);
+        properties.set('width',[`var(--${column}Splitter-width)`,'']);
+      }
+    }
+    manualWidth = tree.clientWidth;
+  }
+  tree.addEventListener('pointerdown',manualResize,true);
+  tree.addEventListener('column-resized',resizedColumn);
+  const resize = new win.ResizeObserver(schedule); resize.observe(tree);
+  const changes = new win.MutationObserver(schedule);
+  changes.observe(tree,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','data-resizable']});
+  schedule();
+  return {close(){closed=true;resize.disconnect();changes.disconnect();if(frame!==null)win.cancelAnimationFrame(frame);
+    tree.removeEventListener('pointerdown',manualResize,true);tree.removeEventListener('column-resized',resizedColumn);restore();}};
+}
+
 function installInboxControls(win) {
   const doc = win.document;
   const tree = doc.getElementById('threadTree');
   if (!tree) return {close(){}};
   const compose = installComposeLabel(doc);
+  const responsive = installResponsiveColumns(win);
   let closed = false, prototype, original, wrapped, rowClass, originalHeight;
   const previews = createPreviewQueue(win);
   const filter = win.quickFilterBar;
@@ -142,13 +233,16 @@ function installInboxControls(win) {
     }
     #threadTree .gm-row-actions button {
       display:inline-flex !important; align-items:center; justify-content:center;
-      pointer-events:auto;
+      pointer-events:auto; flex:0 0 auto; box-sizing:border-box;
       width:28px; height:28px; padding:5px; border:0; border-radius:50%;
       background:transparent; color:inherit; cursor:pointer;
     }
     #threadTree .gm-row-actions button:hover { background:var(--gm-selected, ButtonFace); }
     #threadTree .gm-row-actions button:focus-visible { outline:2px solid Highlight; }
     #threadTree .gm-row-actions svg { width:18px; height:18px; }
+    #threadTree tr:is(:hover,:focus-within) .subject-line > span:not(.gm-inline-labels) {
+      min-width:0 !important;
+    }
     @media (hover:none) { #threadTree .gm-row-actions { display:flex; } }
     @media (prefers-contrast:more) {
       #threadTree .gm-message-snippet { color:CanvasText !important; }
@@ -245,6 +339,7 @@ function installInboxControls(win) {
     style.remove();
     previews.close();
     compose.close();
+    responsive.close();
     if (rowClass && Number.isFinite(originalHeight) && rowClass.ROW_HEIGHT === originalHeight + 6) {
       rowClass.ROW_HEIGHT = originalHeight;
       tree.reset();

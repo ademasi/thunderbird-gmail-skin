@@ -4,7 +4,8 @@
 
 - Renamed the companion to **Thunder-G**, with a new icon, refined Gmail-style
   controls, Previous/Next navigation, local previews, and row actions that occupy
-  space only on hover or keyboard focus.
+  space only on hover or keyboard focus. Added responsive inbox columns and
+  compact actions for narrow mail panes, while allowing native manual resizing.
 - Styled Conversations with compact headers, per-message and subject tag chips,
   individual tag removal, print/forward icons, and extended light/dark support.
   Tag chips in the list and conversations use coordinated

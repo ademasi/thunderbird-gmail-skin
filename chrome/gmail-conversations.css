@@ -267,3 +267,10 @@
 }
 .gm-message-tags .gm-remove-message-tag:hover { background:none !important; opacity:1; }
 .gm-remove-message-tag:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
+
+/* Stack message actions beneath the sender when a narrow reader cannot fit both. */
+@media (max-width:700px) {
+  .messageHeader { grid-template-columns:minmax(0,1fr) !important; row-gap:6px; }
+  .messageHeader > message-header-options { justify-self:end; max-inline-size:100%; }
+  :host(message-header-options) .options { flex-wrap:wrap; justify-content:flex-end; white-space:normal !important; }
+}

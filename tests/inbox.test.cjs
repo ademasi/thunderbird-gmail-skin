@@ -106,3 +106,38 @@ test('preview queue yields between messages, skips stale rows, retries unavailab
   assert.equal(timers.size,0,'shutdown cancels scheduled work');
   assert.equal(queue.get(header,()=>true,()=>{}),'');
 });
+
+test('responsive columns fit the pane on resize, reserve date space and restore saved widths without persistence',()=>{
+  function element(id,type,width){const values=new Map([['width',[`${width}px`,'']]]);return {id,dataset:{type},
+    style:{getPropertyValue:n=>values.get(n)?.[0]||'',getPropertyPriority:n=>values.get(n)?.[1]||'',setProperty:(n,v,p='')=>values.set(n,[v,p]),removeProperty:n=>values.delete(n)},
+    getBoundingClientRect(){return {width:this.width()}},
+    width(){const value=values.get('width')?.[0]||'0';const match=value.match(/^var\(([^)]+)\)$/);return parseFloat(match?values.get(match[1])?.[0]:value)},values};}
+  const icons=element('selectCol','icon',32),sender=element('senderCol','text',260),subject=element('subjectCol','text',900),date=element('dateCol','text',120);
+  const headers=[icons,sender,subject,date],table=element('table','',1400);table.querySelectorAll=()=>headers;
+  const events={};
+  const tree={table,clientWidth:640,addEventListener:(n,fn)=>events[n]=fn,removeEventListener:n=>delete events[n]};let resized,changed;const frames=[];
+  const win={document:{getElementById:()=>tree},getComputedStyle:()=>({display:'table-cell',fontSize:'14px'}),
+    ResizeObserver:class{constructor(fn){resized=fn}observe(){}disconnect(){}},
+    MutationObserver:class{constructor(fn){changed=fn}observe(){}disconnect(){}},
+    requestAnimationFrame:fn=>{frames.push(fn);return frames.length},cancelAnimationFrame(){}};
+  const controller=scope.installResponsiveColumns(win);frames.shift()();
+  const size=h=>h.width();
+  assert.equal(size(table),640);assert.equal(size(date),112);
+  assert.ok(size(sender)+size(subject)+size(date)+32<=640,'date remains inside available width');
+  tree.clientWidth=420;resized();frames.shift()();
+  assert.ok(size(sender)+size(subject)+size(date)+32<=420,'shrinking reallocates text columns');
+  tree.clientWidth=1200;resized();frames.shift()();
+  assert.equal(size(table),1200);assert.ok(size(subject)>500,'growing the pane gives space back to the subject');
+  tree.clientWidth=640;resized();frames.shift()();
+  const visibleSender=size(sender),visibleSubject=size(subject);
+  events.pointerdown({target:{closest:()=>({})}});
+  assert.equal(size(sender),visibleSender,'drag starts from the visible sender width');
+  assert.equal(size(subject),visibleSubject,'drag must not restore the fullscreen subject width');
+  assert.equal(size(table),640,'drag keeps the current pane width');
+  sender.style.setProperty('--senderColSplitter-width','160px');
+  events['column-resized']({detail:{column:'senderCol',splitter:{width:160}}});
+  changed();frames.shift()();assert.equal(size(sender),160,'row updates do not override a manual resize');
+  tree.clientWidth=900;resized();frames.shift()();assert.equal(size(sender),160,'window resize preserves chosen sender width when it fits');
+  tree.clientWidth=500;changed();frames.shift()();controller.close();
+  assert.equal(size(subject),900);assert.equal(size(table),1400);assert.equal(size(sender),160,'disable preserves the user’s new width');
+});
