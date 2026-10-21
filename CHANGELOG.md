@@ -10,8 +10,10 @@
   Tag chips in the list and conversations use coordinated
   pastel backgrounds and colored text, with a lighter text palette in dark mode.
 - Fixed bulk-mode control visibility, hover-action interaction, and conversation
-  chips refreshing after native tag changes. Preserve the user’s Today Pane
-  setting and its native toggle. Removed redundant space below message tags. Improved selection cleanup,
+  chips refreshing after native tag changes. Removed redundant space below
+  message tags. Preserve the user’s Today Pane
+  setting and its native toggle. Added an optional, reversible setting to hide
+  the Today Pane completely. Improved selection cleanup,
   navigation, preview lifecycle and startup readiness; improved uninstall
   recovery and added local release tooling. Accepts Thunderbird 153–158.x;
   cross-version and full visual verification remain pending.

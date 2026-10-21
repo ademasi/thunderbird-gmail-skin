@@ -44,6 +44,14 @@ The × on an individual message chip removes that tag only from that message.
 Loading or unresolved conversations must be retried; cross-folder writes may
 partially succeed if a folder rejects an update.
 
+## Settings
+
+Open Add-ons Manager → Thunder-G → Preferences and enable **Hide Today Pane
+completely** to hide the calendar pane, its splitter and bottom-right toggle.
+The option is off by default, applies immediately and is saved across restarts.
+Turning it off or disabling Thunder-G restores Thunderbird’s existing visibility
+setting without changing calendar preferences.
+
 ## Requirements
 
 Python 3.9+ for the installer/build; Node.js 18+ only to run tests. No Python or

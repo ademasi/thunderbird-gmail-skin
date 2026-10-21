@@ -24,6 +24,15 @@ test('native keyword notifications refresh open conversations and unsubscribe on
     getElementById:id=>id==='today-pane-panel'?pane:null,querySelectorAll:()=>[]};
   windows.onLoadWindow(win);
   assert.equal(todayPaneWrites,0,"attaching the skin preserves the native Today Pane preference");
+  const originalSheets=sheets.size;
+  await api.inlineLabels.setHideTodayPane(true);
+  assert.equal(sheets.size,originalSheets+1,'option adds a separate reversible stylesheet');
+  await api.inlineLabels.setHideTodayPane(true);
+  assert.equal(sheets.size,originalSheets+1,'reapplying does not duplicate sheets');
+  await api.inlineLabels.setHideTodayPane(false);
+  assert.equal(sheets.size,originalSheets,'turning off the option restores presentation');
+  await api.inlineLabels.setHideTodayPane(true);
+  assert.equal(todayPaneWrites,0,'setting changes never write native visibility');
   listener.msgPropertyChanged({},'keywords','ta','');assert.equal(refreshed,1);
   listener.msgPropertyChanged({},'label',1,0);assert.equal(refreshed,2);
   listener.msgPropertyChanged({},'junkscore','0','100');assert.equal(refreshed,2);
@@ -46,3 +55,13 @@ test('startup waits for a complete mail pane and cancels retries when its window
   unload();assert.equal(tasks.size,0,'unload cancels pending startup');assert.equal(attached,1);
 });
 
+test('optional settings failures do not prevent permanent companion startup',async()=>{
+  for (const fail of [false,true]) {
+    const calls=[];
+    const scope=vm.createContext({console:{warn(){},error(){}},browser:{
+      storage:{local:{async get(){if(fail)throw Error('unavailable');return {hideTodayPane:true}}},onChanged:{addListener(){}}},
+      inlineLabels:{async setHideTodayPane(value){calls.push(value)},async start(){calls.push('started')}}}});
+    await vm.runInContext(fs.readFileSync(path.join(__dirname,'../inline-labels/background.js'),'utf8'),scope);
+    assert.deepEqual(calls,[!fail,'started']);
+  }
+});

@@ -36,6 +36,21 @@ var inlineLabels = class extends ExtensionCommon.ExtensionAPI {
     const conversationDocuments = new Map();
     const id = context.extension.id;
     const skinWindows = new Map();
+    let hideTodayPane = false;
+    const todayWindows = new Set();
+    const todayURI = 'data:text/css;charset=utf-8,' + encodeURIComponent(
+      '#today-pane-panel, #today-splitter, #calendar-show-todaypane-panel { display:none !important; }');
+    function applyTodayPane(win) {
+      if (hideTodayPane && !todayWindows.has(win)) {
+        win.windowUtils.loadSheetUsingURIString(todayURI, Ci.nsIDOMWindowUtils.USER_SHEET);
+        todayWindows.add(win);
+      } else if (!hideTodayPane) removeTodayPaneStyle(win);
+    }
+    function removeTodayPaneStyle(win) {
+      if (!todayWindows.delete(win)) return;
+      try { win.windowUtils.removeSheetUsingURIString(todayURI, Ci.nsIDOMWindowUtils.USER_SHEET); }
+      catch (_) { /* Closed windows already discarded the sheet. */ }
+    }
     const skinURI = 'data:text/css;charset=utf-8,' + encodeURIComponent(GMAIL_SKIN_CSS);
     function loadSkin(win, cssURI = skinURI) {
       if (skinWindows.has(win)) return;
@@ -96,6 +111,7 @@ var inlineLabels = class extends ExtensionCommon.ExtensionAPI {
       const listener = event => { if (event.target?.nodeType === 9) attach(event.target); };
       win.addEventListener("load", listener, true);
       windows.set(win, listener);
+      applyTodayPane(win);
       scan(win.document);
     };
     const refresh = () => {
@@ -124,9 +140,15 @@ var inlineLabels = class extends ExtensionCommon.ExtensionAPI {
       for (const controller of conversationDocuments.values()) controller.close();
       conversationDocuments.clear();
       for (const win of skinWindows.keys()) unloadSkin(win);
+      for (const win of todayWindows) removeTodayPaneStyle(win);
       documents.clear(); windows.clear();
     }});
     return { inlineLabels: {
+      async setHideTodayPane(hidden) {
+        if (closed) return;
+        hideTodayPane = hidden;
+        for (const win of windows.keys()) applyTodayPane(win);
+      },
       async start() {
       if (started) return;
       started = true;
@@ -136,6 +158,7 @@ var inlineLabels = class extends ExtensionCommon.ExtensionAPI {
         chromeURLs: ["chrome://messenger/content/messenger.xhtml"],
         onLoadWindow: loadWindow,
         onUnloadWindow(win) {
+          removeTodayPaneStyle(win);
           unloadSkin(win);
           const listener = windows.get(win);
           if (listener) win.removeEventListener("load", listener, true);
