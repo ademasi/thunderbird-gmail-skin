@@ -35,6 +35,11 @@ function installInlineLabels(window = globalThis.window, MailServices = globalTh
     #threadTree .subject-line {
       display: flex !important; align-items: center; min-width: 0;
       flex: 1 1 auto; overflow: hidden; column-gap: 0 !important;
+      padding-inline-start: 0 !important;
+    }
+    #threadTree .subject-line:has(> .gm-inline-labels) {
+      /* Half Thunderbird's native 22px leading inset, only when tagged. */
+      padding-inline-start: 11px !important;
     }
     #threadTree .subject-line > span:not(.gm-inline-labels) {
       flex: 1 1 0; overflow: hidden; text-overflow: ellipsis;
@@ -43,7 +48,7 @@ function installInlineLabels(window = globalThis.window, MailServices = globalTh
     #threadTree .subject-line > img { flex: 0 0 auto; }
     #threadTree .gm-inline-labels {
       display: inline-flex; flex: 0 1 auto; max-width: 48%; gap: 4px;
-      overflow: hidden; margin-inline-end: 4px; align-items: center;
+      overflow: hidden; margin-inline-end: 2px; align-items: center;
       font-weight: 400; vertical-align: middle;
     }
     #threadTree .gm-inline-label {
