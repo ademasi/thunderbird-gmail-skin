@@ -13,8 +13,9 @@ var inlineLabels = class extends ExtensionCommon.ExtensionAPI {
       if (closed || !doc || doc.documentURI !== "about:3pane" || documents.has(doc)) return;
       const labels = installInlineLabels(doc.defaultView, MailServices);
       const reader = installReadingMode(doc.defaultView);
-      documents.set(doc, { refresh: () => labels.refresh(), close() {
-        reader.close(); labels.close();
+      const dates = installCompactDates(doc.defaultView);
+      documents.set(doc, { refresh() { labels.refresh(); dates.refresh(); }, close() {
+        dates.close(); reader.close(); labels.close();
       }});
     };
     const scan = doc => {

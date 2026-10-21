@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.xpi
+*.zip
+.DS_Store
+recovery/
+.gmail-skin-install*/

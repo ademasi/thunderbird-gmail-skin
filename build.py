@@ -17,5 +17,6 @@ with ZipFile(output, 'w', ZIP_DEFLATED) as archive:
             # unsigned extension jar URIs as untrusted in Thunderbird 153.
             data += b'\n' + (source / 'labels.js').read_bytes()
             data += b'\n' + (source / 'reading.js').read_bytes()
+            data += b'\n' + (source / 'dates.js').read_bytes()
         archive.writestr(relative, data)
 print(output)
