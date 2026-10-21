@@ -1,0 +1,14 @@
+{
+  "manifest_version": 2,
+  "name": "Gmail-style Inline Labels",
+  "description": "Displays existing Thunderbird / Tag Popup tags as colored chips before each subject. Does not change message tags.",
+  "version": "0.4.1",
+  "browser_specific_settings": {"gecko": {"id": "inline-labels@local.gmail-skin", "strict_min_version": "153.0", "strict_max_version": "153.*"}},
+  "background": {"scripts": ["background.js"]},
+  "experiment_apis": {
+    "inlineLabels": {
+      "schema": "experiments/schema.json",
+      "parent": {"scopes": ["addon_parent"], "paths": [["inlineLabels"]], "script": "experiments/api.js"}
+    }
+  }
+}

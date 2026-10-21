@@ -1,0 +1,150 @@
+/* Gmail-inspired desktop skin. Target: Thunderbird 153 ESR.
+ * UI only: no message content, account, or synchronization changes.
+ * Keep native row heights: Thunderbird's virtual list calculates them in JS.
+ */
+@media not (prefers-contrast) {
+  :root {
+    color-scheme: light !important;
+    --gm-shell: #f6f8fc;
+    --gm-read: #f2f6fc;
+    --gm-ink: #202124;
+    --gm-selected: #c2dbff;
+    --layout-background-0: #ffffff !important;
+    --layout-background-1: #f6f8fc !important;
+    --layout-color-0: #202124 !important;
+    --layout-color-1: #444746 !important;
+    --sidebar-background: #f6f8fc !important;
+    --sidebar-color: #202124 !important;
+    --sidebar-border: transparent !important;
+    --tree-view-bg: #f2f6fc !important;
+    --tree-view-color: #202124 !important;
+    --unread-color: #202124 !important;
+    --treeitem-background-selected: #d3e3fd !important;
+    --treeitem-background-active: #d3e3fd !important;
+    --treeitem-background-hover: #e9eef6 !important;
+    --treeitem-text-active: #001d35 !important;
+    --listbox-focused-selected-bg: #c2dbff !important;
+    --listbox-selected-color: #202124 !important;
+    --thread-pane-flag-fill: #1a73e8 !important;
+    --thread-pane-flag-stroke: #1a73e8 !important;
+  }
+
+  #messengerWindow, #paneLayout, #unifiedToolbar, #tabs-toolbar,
+  #folderPane, #folderPaneHeaderBar, #spacesToolbar {
+    background-color: var(--gm-shell) !important;
+    color: var(--gm-ink) !important;
+  }
+
+  #folderTree, #threadTree {
+    font-family: Arial, sans-serif !important;
+    font-size: 14px !important;
+  }
+
+  #folderPaneHeaderBar {
+    padding: 12px 10px !important;
+    border: 0 !important;
+  }
+
+  #folderPaneWriteMessage {
+    background: #c2e7ff !important;
+    color: #001d35 !important;
+    border: 0 !important;
+    border-radius: 16px !important;
+    padding: 14px 20px !important;
+    box-shadow: none !important;
+  }
+
+  #folderPaneWriteMessage:hover {
+    box-shadow: 0 2px 5px #3c404326 !important;
+  }
+
+  #folderTree .container {
+    border-radius: 0 18px 18px 0 !important;
+    margin-inline: 0 12px !important;
+  }
+
+  #folderTree li.selected > .container {
+    background: #d3e3fd !important;
+    color: #001d35 !important;
+    font-weight: 600 !important;
+  }
+
+  #folderTree .folder-count-badge {
+    background: transparent !important;
+    color: inherit !important;
+    font-weight: 400 !important;
+  }
+
+  #folderTree .mode-container {
+    border: 0 !important;
+    padding-block: 12px 6px !important;
+  }
+
+  #threadPane {
+    border-radius: 16px 16px 0 0 !important;
+    background: white !important;
+  }
+
+  #threadPaneHeaderBar, #quick-filter-bar {
+    background: white !important;
+    color: #444746 !important;
+    border-color: #e8eaed !important;
+  }
+
+  #threadPaneFolderName {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+  }
+
+  #threadTree thead {
+    background: white !important;
+    color: #5f6368 !important;
+  }
+
+  #threadTree tbody > tr.table-layout {
+    background: var(--gm-read) !important;
+    color: var(--gm-ink) !important;
+    box-shadow: inset 0 -1px #e3e7ed !important;
+  }
+
+  #threadTree tbody > tr.table-layout[data-properties~="unread"] {
+    background: white !important;
+    font-weight: 700 !important;
+  }
+
+  #threadTree tbody > tr.table-layout:hover {
+    background: #e9eef6 !important;
+    box-shadow: inset 0 1px #dadce0, inset 0 -1px #dadce0 !important;
+  }
+
+  #threadTree tbody > tr.table-layout.selected {
+    background: var(--gm-selected) !important;
+    color: var(--gm-ink) !important;
+  }
+
+  #threadTree tbody > tr:focus-visible {
+    outline: 2px solid #1a73e8 !important;
+    outline-offset: -2px !important;
+  }
+
+  /* The native Tags column remains real, editable Thunderbird metadata.
+   * A single pill encloses its text; CSS cannot split it into per-tag chips.
+   */
+  #threadTree .tagscol-column:not(:empty) {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+  }
+
+  #threadTree .tagscol-column .cell-text:not(:empty) {
+    background: #e0e5e9 !important;
+    color: #3c4043 !important;
+    border-radius: 4px !important;
+    padding: 2px 5px !important;
+  }
+
+  #messageHeader {
+    background: white !important;
+    color: #202124 !important;
+    border-bottom: 1px solid #e8eaed !important;
+  }
+}

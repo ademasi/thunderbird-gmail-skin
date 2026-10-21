@@ -1,0 +1,1 @@
+browser.inlineLabels.start();
