@@ -5,7 +5,7 @@ existing tags as colored chips before the subject, and a conversation reader
 with a Back button and message actions. No Google affiliation or Gmail login is
 required. Your mailbox remains with its existing provider.
 
-Current version: **0.4.1**. Developed and manually checked on **Thunderbird 153.5
+Current version: **0.4.2**. Developed and manually checked on **Thunderbird 153.5
 ESR on macOS**. The privileged companion is deliberately restricted to Thunderbird
 153.x. Other Thunderbird versions, Windows, and Linux are unverified. This is not
 an iOS skin, and it does not add cross-client Exchange tag synchronization.
@@ -127,7 +127,7 @@ an explicit allowlist, excluding generated packages and profile recovery data.
 Create a repository with this directory's contents (not a Thunderbird profile
 and not the original development folder). The included MIT license allows reuse.
 Keep generated XPI files out of Git history; attach the source ZIP, checksum and,
-optionally, the built XPI as release assets tagged `v0.4.1`. The source ZIP is the
+optionally, the built XPI as release assets tagged `v0.4.2`. The source ZIP is the
 complete installable bundle; the XPI alone supplies only the companion features.
 Mark the first release experimental and include the compatibility/testing limits
 above. No repository has been published by the package preparation step.
@@ -168,3 +168,16 @@ Thunderbird, uninstall using the installer from the currently installed release,
 then install the previous release. This applies to profiles managed by the
 portable installer; local development rollback scripts are machine-specific and
 are intentionally excluded from public packages.
+
+
+## Selection polish (0.4.2)
+
+Native header/row checkboxes are consistently 18 px, with stronger hover and
+checked-state contrast. Selected rows keep a light blue #c2dbff background on
+hover and when focus moves to the toolbar. High-contrast mode retains native
+selection colors. The bulk toolbar replaces the folder heading while selecting,
+rather than inserting a second heading row. Clearing selection, opening the
+reader, changing folders, or disabling the companion restores the heading.
+Seven regression tests pass. Live UI checks covered compact checkbox appearance,
+selected-row color, multiple selection, toolbar placement, and heading restoration;
+no archive/delete/move/tag operations were executed during verification.

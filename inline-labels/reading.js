@@ -85,6 +85,27 @@ function installReadingMode(win) {
       background:var(--layout-border-0, #dadce0); flex:0 0 1px; }
     .gm-selection-count { margin-inline:6px 10px; white-space:nowrap; }
     .gm-selection-count:empty { display:none; }
+    /* Replace the folder heading with actions, rather than adding another row. */
+    #threadPane.gm-bulk-selecting > #threadPaneHeaderBar { display:none !important; }
+    #threadPaneHeaderBar { min-block-size:44px; box-sizing:border-box; }
+    #threadPane > .gm-reading-toolbar { min-block-size:44px; border-bottom:0;
+      border-radius:16px 16px 0 0; background:var(--layout-background-0, white); }
+    #threadTree :is(.tree-view-header-select, .tree-view-row-select) img {
+      inline-size:18px !important; block-size:18px !important;
+      min-inline-size:18px; min-block-size:18px; opacity:.75;
+    }
+    #threadTree :is(#selectColButton:hover, .tree-view-row-select:hover) img,
+    #threadTree .selected .tree-view-row-select img,
+    #threadTree :is(.some-selected, .all-selected) .tree-view-header-select img { opacity:1; }
+    @media not (prefers-contrast) {
+      :root #threadTree tbody > tr.table-layout.selected,
+      :root #threadTree tbody > tr.table-layout.selected:hover {
+        background:#c2dbff !important; color:#202124 !important;
+        box-shadow:inset 0 -1px #b5cfee !important;
+      }
+      :root #threadTree .tree-view-row-select img,
+      :root #threadTree .tree-view-header-select img { color:#444746 !important; }
+    }
   `;
   doc.head.append(style);
   const toolbar = doc.createElement('div');
@@ -190,6 +211,8 @@ function installReadingMode(win) {
     if (active || closed || !threadPane) return;
     const count = win.gDBView?.getSelectedMsgHdrs().length || 0;
     toolbar.hidden = !bulk || !count;
+    if (toolbar.hidden) threadPane.classList.remove('gm-bulk-selecting');
+    else threadPane.classList.add('gm-bulk-selecting');
     if (!toolbar.hidden) {
       threadPane.prepend(toolbar);
       setBackIcon(true);
@@ -240,6 +263,7 @@ function installReadingMode(win) {
       } : null,
       folderURI:win.gFolder?.URI, scrollTop:tree.scrollTop, scrollLeft:tree.scrollLeft };
     active = true;
+    threadPane?.classList.remove('gm-bulk-selecting');
     bulk = false;
     layout.append(toolbar);
     setBackIcon(false);
@@ -276,7 +300,7 @@ function installReadingMode(win) {
     }
   };
   MailServices.mfn.addListener(moveListener, Ci.nsIMsgFolderNotificationService.msgsMoveCopyCompleted);
-  function folderChange() { leave(false); bulk = false; toolbar.hidden = true; }
+  function folderChange() { leave(false); bulk = false; toolbar.hidden = true; threadPane?.classList.remove('gm-bulk-selecting'); }
   function backClick() { if (active) leave(true); else clearBulk(); }
   tree.addEventListener('click', selectionClick, true);
   tree.addEventListener('select', selectionChanged);
@@ -287,6 +311,7 @@ function installReadingMode(win) {
   function close() {
     leave(false);
     closed = true;
+    threadPane?.classList.remove('gm-bulk-selecting');
     layout.messagePaneVisible = originalMessagePaneVisible;
     MailServices.mfn.removeListener(moveListener);
     tree.removeEventListener('click', selectionClick, true);
