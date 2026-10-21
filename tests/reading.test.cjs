@@ -158,6 +158,8 @@ test('checkbox selection shows bulk toolbar and archives native selection withou
   while(frames.length)frames.shift()();
   const toolbar=threadPane.children[0];
   assert.equal(toolbar.hidden,false);assert.equal(toolbar.children[1].textContent,'2 selected');
+  for (const title of ['Print conversation','Previous message','Next message'])
+    assert.equal(nodes.find(n=>n.title===title).hidden,true,`${title} is hidden in bulk mode`);
   assert.equal(layout.messagePaneVisible,false);
   const archive=nodes.find(n=>n.title==='Archive');archive.events.click[0]();
   assert.equal(calls[0][0],'cmd_archive');assert.equal(calls[0][1].length,2);

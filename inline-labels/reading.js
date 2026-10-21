@@ -145,7 +145,7 @@ function installReadingMode(win) {
       border-bottom:1px solid var(--layout-border-0, #e8eaed);
       font:inherit; min-width:0; overflow-x:auto; flex-shrink:0;
     }
-    .gm-reading-toolbar[hidden] { display:none !important; }
+    .gm-reading-toolbar[hidden], .gm-reading-toolbar [hidden] { display:none !important; }
     .gm-reading-back {
       display:inline-flex; align-items:center; justify-content:center;
       box-sizing:border-box; inline-size:36px; block-size:36px; min-inline-size:36px;

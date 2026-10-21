@@ -88,6 +88,12 @@ Alternatively build with `python3 build.py` and install the resulting XPI throug
 Add-ons Manager → gear → Install Add-on From File. The XPI also bundles shell and Conversations styles, loaded while the companion
 is active. The installer additionally manages persistent profile CSS and rollback.
 
+The installer places the companion permanently in the selected profile’s
+`extensions` directory. It should survive restarts; temporary installation from
+the debugging page is not needed. If the interface is missing after restart,
+check whether Thunder-G is still enabled in Add-ons Manager and that Thunderbird
+opened the same profile.
+
 ### Optional column layout
 
 With the intended ordinary folder open, paste the entire

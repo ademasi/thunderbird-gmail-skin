@@ -252,6 +252,3 @@
     --thread-pane-flag-stroke: #fdd663 !important;
   }
 }
-
-/* The Today Pane remains available from Thunderbird's menus. */
-#calendar-show-todaypane-panel { display:none !important; }

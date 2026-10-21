@@ -9,7 +9,10 @@
   individual tag removal, print/forward icons, and extended light/dark support.
   Tag chips in the list and conversations use coordinated
   pastel backgrounds and colored text, with a lighter text palette in dark mode.
-- Fixed selection cleanup, navigation and preview lifecycle; improved uninstall
+- Fixed bulk-mode control visibility, hover-action interaction, and conversation
+  chips refreshing after native tag changes. Preserve the user’s Today Pane
+  setting and its native toggle. Removed redundant space below message tags. Improved selection cleanup,
+  navigation, preview lifecycle and startup readiness; improved uninstall
   recovery and added local release tooling. Accepts Thunderbird 153–158.x;
   cross-version and full visual verification remain pending.
 

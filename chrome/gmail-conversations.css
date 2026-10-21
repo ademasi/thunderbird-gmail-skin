@@ -233,14 +233,18 @@
 /* Expanded mail keeps its own labels directly below its recipients. */
 .messageHeader.expanded .gm-message-tags {
   display:flex !important; flex-wrap:wrap; gap:6px !important;
-  margin:7px 0 8px !important; padding:0 !important;
+  margin:7px 0 4px !important; padding:0 !important;
 }
 .gm-message-tags > span {
   display:inline-block; padding:1px 8px !important; border-radius:6px !important;
   font:400 12px/20px Roboto,Arial,sans-serif;
   background:var(--gm-tag-bg,#e8eaed); color:var(--gm-tag-fg,#202124);
 }
-.messageBody > ul.gm-tags-in-message-header { display:none !important; }
+/* Must outrank the expanded regular-tags display:flex rule above. */
+.message .messageBody > ul.regular-tags.gm-tags-in-message-header[expanded] {
+  display:none !important; margin:0 !important; padding:0 !important;
+}
+.messageBody > iframe:not(.hidden) { display:block; }
 @media (prefers-contrast:more) {
   .gm-message-tags > span { background:Canvas; color:CanvasText; border:1px solid CanvasText; }
 }

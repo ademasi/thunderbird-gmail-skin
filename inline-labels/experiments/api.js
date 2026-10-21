@@ -3,9 +3,35 @@ var { ExtensionCommon } = ChromeUtils.importESModule("resource://gre/modules/Ext
 var { ExtensionSupport } = ChromeUtils.importESModule("resource:///modules/ExtensionSupport.sys.mjs");
 var { MailServices } = ChromeUtils.importESModule("resource:///modules/MailServices.sys.mjs");
 
+function mailPaneReady(doc) {
+  const win = doc.defaultView;
+  return doc.readyState === 'complete' && !!win?.threadPane &&
+    ['paneLayout','threadTree','folderTree'].every(id => doc.getElementById(id));
+}
+function waitForMailPane(doc, onReady) {
+  const win = doc.defaultView;
+  let timer = null, stopped = false, attempts = 0;
+  function close() {
+    stopped = true;
+    if (timer !== null) win.clearTimeout(timer);
+    win.removeEventListener('unload',close);
+  }
+  function check() {
+    timer = null;
+    if (stopped || win.closed) { close(); return; }
+    if (mailPaneReady(doc)) { close(); onReady(); return; }
+    if (++attempts < 100) timer = win.setTimeout(check,100);
+    else { close(); console.warn('Thunder-G: mail pane is not ready; waiting for a later load event.'); }
+  }
+  win.addEventListener('unload',close,{once:true});
+  timer = win.setTimeout(check,0);
+  return {close};
+}
+
 var inlineLabels = class extends ExtensionCommon.ExtensionAPI {
   getAPI(context) {
     const documents = new Map();
+    const pendingDocuments = new Map();
     const windows = new Map();
     const conversationDocuments = new Map();
     const id = context.extension.id;
@@ -38,6 +64,14 @@ var inlineLabels = class extends ExtensionCommon.ExtensionAPI {
         return;
       }
       if (closed || !doc || doc.documentURI !== "about:3pane" || documents.has(doc)) return;
+      if (!mailPaneReady(doc)) {
+        if (!pendingDocuments.has(doc)) pendingDocuments.set(doc,waitForMailPane(doc,() => {
+          pendingDocuments.delete(doc);
+          attach(doc);
+        }));
+        return;
+      }
+      pendingDocuments.get(doc)?.close(); pendingDocuments.delete(doc);
       loadSkin(doc.defaultView);
       const labels = installInlineLabels(doc.defaultView, MailServices);
       const reader = installReadingMode(doc.defaultView);
@@ -57,14 +91,8 @@ var inlineLabels = class extends ExtensionCommon.ExtensionAPI {
     };
     const loadWindow = win => {
       loadSkin(win);
-      // Start without the optional right-hand Today Pane. Use its own API so
-      // Thunderbird updates both the persisted visibility and the splitter.
-      const todayPane = win.document.getElementById('today-pane-panel');
-      if (todayPane?.setVisible && win.TodayPane) {
-        todayPane.setVisible(false, true, true);
-        win.TodayPane.updateDisplay();
-        win.TodayPane.updateSplitterState();
-      }
+      // Today Pane visibility belongs to the user. Do not persist calendar UI
+      // changes when a skin attaches, restarts, or is disabled.
       const listener = event => { if (event.target?.nodeType === 9) attach(event.target); };
       win.addEventListener("load", listener, true);
       windows.set(win, listener);
@@ -77,22 +105,33 @@ var inlineLabels = class extends ExtensionCommon.ExtensionAPI {
       }
     };
     const observer = { observe: refresh };
+    const tagChanges = {
+      msgPropertyChanged(header, property) {
+        if (closed || !["keywords", "label"].includes(property)) return;
+        for (const controller of conversationDocuments.values()) controller.refresh();
+      }
+    };
     context.callOnClose({ close() {
       closed = true;
       if (!started) return;
       ExtensionSupport.unregisterWindowListener(id);
       Services.prefs.removeObserver("mailnews.tags.", observer);
+      MailServices.mfn.removeListener(tagChanges);
       for (const [win, listener] of windows) win.removeEventListener("load", listener, true);
+      for (const controller of pendingDocuments.values()) controller.close();
+      pendingDocuments.clear();
       for (const controller of documents.values()) controller.close();
       for (const controller of conversationDocuments.values()) controller.close();
       conversationDocuments.clear();
       for (const win of skinWindows.keys()) unloadSkin(win);
       documents.clear(); windows.clear();
     }});
-    return { inlineLabels: { async start() {
+    return { inlineLabels: {
+      async start() {
       if (started) return;
       started = true;
       Services.prefs.addObserver("mailnews.tags.", observer);
+      MailServices.mfn.addListener(tagChanges, Ci.nsIMsgFolderNotificationService.msgPropertyChanged);
       ExtensionSupport.registerWindowListener(id, {
         chromeURLs: ["chrome://messenger/content/messenger.xhtml"],
         onLoadWindow: loadWindow,

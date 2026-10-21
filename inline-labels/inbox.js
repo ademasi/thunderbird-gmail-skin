@@ -135,12 +135,14 @@ function installInboxControls(win) {
     }
     #threadTree .gm-row-actions {
       display:none; flex:0 0 auto; gap:2px; margin-inline-start:auto;
+      pointer-events:auto;
     }
     #threadTree tr:is(:hover,:focus-within) .gm-row-actions {
-      display:flex;
+      display:flex !important;
     }
     #threadTree .gm-row-actions button {
-      display:inline-flex; align-items:center; justify-content:center;
+      display:inline-flex !important; align-items:center; justify-content:center;
+      pointer-events:auto;
       width:28px; height:28px; padding:5px; border:0; border-radius:50%;
       background:transparent; color:inherit; cursor:pointer;
     }

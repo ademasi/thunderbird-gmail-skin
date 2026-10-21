@@ -74,6 +74,7 @@ function installConversationStyle(win, css, resolveTags = null) {
     renderMessageTags(list);
   }
   function refreshMessageTags() {
+    if (closed) return;
     for (const list of win.document.querySelectorAll('ul[is="message-tags"]')) syncMessageTags(list);
     updateTitleTags();
   }
@@ -210,7 +211,7 @@ function installConversationStyle(win, css, resolveTags = null) {
   }
   win.addEventListener("focus",refreshMessageTags);
   win.addEventListener('unload',close,{once:true});
-  return {close};
+  return {close, refresh:refreshMessageTags};
 }
 
 /* The multi-message browser is created lazily and can navigate after attachment. */

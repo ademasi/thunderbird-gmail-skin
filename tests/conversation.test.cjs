@@ -62,7 +62,7 @@ test('message chips use native assignments for the exact Conversations ID, inclu
     addEventListener:(n,fn)=>{if(n==='focus')focus=fn},removeEventListener(){}};
   const controller=scope.installConversationStyle(win,'',id=>{assert.equal(id,42);return labels});
   assert.equal(JSON.parse(attributes.tags)[0].name,'TA');
-  labels=[];focus();assert.equal(attributes.tags,'[]','removed native tags disappear');
+  labels=[];controller.refresh();assert.equal(attributes.tags,'[]','native changes refresh tags without refocusing the window');
   attributes.msgid='invalid';attributes.tags='[]';callback([{type:'attributes',attributeName:'msgid',target:list}]);
   assert.equal(attributes.tags,'[]','invalid IDs cannot borrow tags from another message');
   controller.close();
