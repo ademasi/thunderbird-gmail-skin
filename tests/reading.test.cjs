@@ -138,10 +138,12 @@ test('picker filters, preserves focus, delegates bulk toggles and rejects change
   scope.Ci={nsIMsgFolderNotificationService:{msgsMoveCopyCompleted:1}};
   scope.MailServices={mfn:{addListener(){},removeListener(){}},tags:{getAllTags:()=>[
     {key:'one',tag:'Project One',color:'#ff0000'},{key:'two',tag:'Other'}]}};
-  const win={document:doc,gDBView:{getSelectedMsgHdrs:()=>selected},commandController:{_toggleMessageTag:(...args)=>calls.push(args)},
+  const nativeCommands=[];
+  const win={document:doc,gDBView:{getSelectedMsgHdrs:()=>selected},commandController:{_toggleMessageTag:(...args)=>calls.push(args),doCommand:name=>nativeCommands.push(name)},
     addEventListener(){},removeEventListener(){}};
   const controller=scope.installReadingMode(win);
   nodes.find(n=>n.title==='Labels… (L)').events.click[0]();
+  assert.ok(nodes.some(n=>n.textContent==='Label as:'));
   const search=nodes.find(n=>n.type==='search');assert.equal(doc.activeElement,search);
   const first=nodes.find(n=>n.type==='checkbox');assert.equal(first.indeterminate,true);
   first.checked=true;first.events.change[0]();assert.deepEqual(calls,[['one',true]]);
@@ -150,5 +152,10 @@ test('picker filters, preserves focus, delegates bulk toggles and rejects change
   const list=nodes.find(n=>n.className==='gm-label-list');assert.equal(list.childElementCount,1);
   const other=list.children[0].children[0];selected=[messages[0]];
   other.checked=true;other.events.change[0]();assert.equal(calls.length,2);assert.equal(doc.activeElement,tree);
+  nodes.find(n=>n.textContent==='Manage labels').events.click[0]();
+  assert.deepEqual(nativeCommands,['cmd_manageTags']);
+  selected=messages;nodes.find(n=>n.title==='Labels… (L)').events.click[0]();
+  nodes.find(n=>n.textContent==='Create new').events.click[0]();
+  assert.deepEqual(nativeCommands,['cmd_manageTags','cmd_addTag']);
   controller.close();
 });

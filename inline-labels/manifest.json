@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Gmail-style Inline Labels",
   "description": "Gmail-inspired message list, native tag chips, conversation navigation, bulk actions, compact dates, and theme-aware styling.",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "browser_specific_settings": {
     "gecko": {
       "id": "inline-labels@local.gmail-skin",

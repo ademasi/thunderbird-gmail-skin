@@ -5,7 +5,7 @@ existing tags as colored chips before the subject, and a conversation reader
 with a Back button and message actions. No Google affiliation or Gmail login is
 required. Your mailbox remains with its existing provider.
 
-Current version: **0.7.0**. Developed and manually checked on **Thunderbird 153.5
+Current version: **0.7.1**. Developed and manually checked on **Thunderbird 153.5
 ESR on macOS**. The privileged companion is deliberately restricted to Thunderbird
 153.x. Other Thunderbird versions, Windows, and Linux are unverified. This is not
 an iOS skin, and it does not add cross-client Exchange tag synchronization.
@@ -127,7 +127,7 @@ an explicit allowlist, excluding generated packages and profile recovery data.
 Create a repository with this directory's contents (not a Thunderbird profile
 and not the original development folder). The included MIT license allows reuse.
 Keep generated XPI files out of Git history; attach the source ZIP, checksum and,
-optionally, the built XPI as release assets tagged `v0.7.0`. The source ZIP is the
+optionally, the built XPI as release assets tagged `v0.7.1`. The source ZIP is the
 complete installable bundle; the XPI alone supplies only the companion features.
 Mark the first release experimental and include the compatibility/testing limits
 above. No repository has been published by the package preparation step.
@@ -239,3 +239,17 @@ tag states, native bulk add/remove delegation, stale selection rejection and foc
 restoration. Live Thunderbird checks cover opening from list/conversation views,
 search matches/no matches, arrow navigation and Escape. Real mail tags were not
 changed during testing.
+
+## Gmail-style label panel (0.7.1)
+
+The L picker now reads **Label as:** and follows the supplied Gmail reference:
+plain square checkboxes without color dots, regular-weight heading, a wider panel,
+compact rows, underlined search with a magnifying glass, and a divided footer.
+**Create new** opens Thunderbird's New Tag dialog; **Manage labels** opens its tag
+settings. Native tag metadata, immediate application, search and keyboard navigation
+remain unchanged. Theme colors follow Light/Dark. The list scrolls independently of
+the heading/search/footer. Ordering remains Thunderbird's existing tag order.
+
+Validation: 13 automated tests pass, including heading and footer native-command
+routing. In Thunderbird, L opens the panel, the heading/footer appear, searching
+filters labels, and Create new opens New Tag (cancelled without changing tags).
