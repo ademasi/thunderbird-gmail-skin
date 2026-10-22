@@ -396,7 +396,19 @@ function installReadingMode(win) {
     if (tabmail && tabmail.currentAbout3Pane !== win) return;
     if (!win.gDBView?.getSelectedMsgHdrs().length) return;
     event.preventDefault(); event.stopImmediatePropagation();
-    showLabels(toolbar.hidden ? tree : labelsButton);
+    showLabels(toolbar.hidden ? listLabelAnchor() : labelsButton);
+  }
+  // Anchoring the panel to the whole list leaves no room below it, so Gecko
+  // flips it above the list and clips it to the header strip (Linux, seen in
+  // Betterbird 153). Anchor to the selected row, then the folder header bar.
+  function listLabelAnchor() {
+    const visible = element => element?.isConnected && !element.hidden &&
+      element.getBoundingClientRect().height > 0;
+    let row = null;
+    try { row = tree.getRowAtIndex?.(tree.currentIndex); } catch (_) { /* row not rendered */ }
+    if (visible(row)) return row;
+    const header = doc.getElementById('threadPaneHeaderBar');
+    return visible(header) ? header : tree;
   }
   function watchKeys(document) {
     if (!document || keyDocuments.has(document)) return;

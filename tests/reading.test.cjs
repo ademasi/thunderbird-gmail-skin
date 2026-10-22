@@ -263,3 +263,39 @@ test('conversation tag add/remove writes exact headers to every folder, includin
   sent.addKeywordsToMessages=()=>{throw Error('read only')};
   assert.throws(()=>scope.applyConversationLabel(messages,'srds_sc',true),/read only/);
 });
+test('L in the list anchors the picker to the selected row, then the header bar, never first to the whole list',()=>{
+  // Anchoring to the full-height list made Gecko flip the panel above it and
+  // clip it to the header strip on Linux (Betterbird 153).
+  function setup({rowVisible, headerVisible}) {
+    const nodes=[];let keydown=null;const anchors=[];
+    function el(name){const events={}, attrs={};const n={name,events,children:[],style:{},value:'',isConnected:true,hidden:false,
+      classList:{add(){},remove(){}},setAttribute(k,v){attrs[k]=v},getAttribute:k=>attrs[k],
+      append(...children){this.children.push(...children)},prepend(x){this.children.unshift(x)},
+      replaceChildren(...children){this.children=children},get childElementCount(){return this.children.length},
+      addEventListener(k,f){(events[k]??=[]).push(f)},removeEventListener(){},remove(){},focus(){},
+      querySelectorAll(){return []},getBoundingClientRect:()=>({height:20}),
+      openPopup(anchor){anchors.push(anchor);this.events.popupshown?.forEach(f=>f())},
+      hidePopup(){this.events.popuphidden?.forEach(f=>f())}};
+      nodes.push(n);return n;}
+    const layout=el(),tree=el('tree'),folderTree=el(),threadPane=el(),header=el('header'),row=el('row');
+    row.getBoundingClientRect=()=>({height:rowVisible?28:0});
+    header.hidden=!headerVisible;
+    tree.currentIndex=3;tree.getRowAtIndex=index=>index===3?row:null;
+    const doc={activeElement:tree,querySelectorAll:()=>[],
+      addEventListener(type,f){if(type==='keydown')keydown=f},removeEventListener(){},
+      getElementById:id=>({paneLayout:layout,threadTree:tree,folderTree,threadPane,threadPaneHeaderBar:header})[id],
+      createElement:el,createElementNS:(_ns,name)=>el(name),createXULElement:el,head:el(),documentElement:el()};
+    scope.Ci={nsIMsgFolderNotificationService:{msgsMoveCopyCompleted:1}};
+    scope.MailServices={mfn:{addListener(){},removeListener(){}},tags:{getAllTags:()=>[{key:'one',tag:'One'}]}};
+    const win={document:doc,top:{document:{getElementById:()=>null}},
+      gDBView:{getSelectedMsgHdrs:()=>[{messageKey:1,folder:{URI:'inbox'},getStringProperty:()=>''}]},
+      commandController:{doCommand(){},_toggleMessageTag(){}},addEventListener(){},removeEventListener(){}};
+    const controller=scope.installReadingMode(win);
+    keydown({key:'l',target:{closest:()=>null},preventDefault(){},stopImmediatePropagation(){}});
+    controller.close();
+    return {anchor:anchors[0],row,header,tree};
+  }
+  let r=setup({rowVisible:true,headerVisible:true});assert.equal(r.anchor,r.row);
+  r=setup({rowVisible:false,headerVisible:true});assert.equal(r.anchor,r.header);
+  r=setup({rowVisible:false,headerVisible:false});assert.equal(r.anchor,r.tree);
+});
