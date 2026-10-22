@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.0
+
 - Renamed the companion to **Thunder-G**, with a new icon, refined Gmail-style
   controls, Previous/Next navigation, local previews, and row actions that occupy
   space only on hover or keyboard focus. Added responsive inbox columns and
