@@ -1,7 +1,12 @@
 """Exercise real installer file writes in temporary profiles; no live profile access."""
 import importlib.util
 from pathlib import Path
+import os
+import shutil
+import subprocess
+import sys
 import tempfile
+import time
 import unittest
 
 spec = importlib.util.spec_from_file_location('installer', Path(__file__).resolve().parents[1] / 'install.py')
@@ -76,5 +81,25 @@ class InstallerTests(unittest.TestCase):
             backup=list(profile.glob(installer.STATE+'-cleanup-*/'+installer.ADDON))
             self.assertEqual(backup[0].read_bytes(),b'updated')
             installer.uninstall(profile)
+
+    @unittest.skipIf(sys.platform == 'win32' or not shutil.which('pgrep') or not shutil.which('bash'), 'needs pgrep and bash')
+    def test_running_client_pattern_includes_betterbird(self):
+        # Spawn stand-ins with the clients' command lines and match only our own
+        # children (pgrep -P), so a real running mail client cannot skew this.
+        def matches(argv0):
+            child = subprocess.Popen(['bash', '-c', f'exec -a {argv0} sleep 30'])
+            try:
+                time.sleep(0.2)
+                found = subprocess.run(['pgrep', '-P', str(os.getpid()), '-if', installer.CLIENT_PROCESS],
+                                       capture_output=True, text=True).stdout.split()
+                return str(child.pid) in found
+            finally:
+                child.kill(); child.wait()
+        for argv0 in ['/usr/bin/betterbird', '/opt/betterbird/betterbird-bin', '/Applications/Betterbird.app/Contents/MacOS/betterbird',
+                      '/usr/lib/thunderbird/thunderbird', '/usr/bin/thunderbird-bin']:
+            self.assertTrue(matches(argv0), argv0)
+        for argv0 in ['/usr/bin/betterbirdish', '/home/me/.thunderbird/profile', 'notthunderbird']:
+            self.assertFalse(matches(argv0), argv0)
+        self.assertIn('betterbird.exe', installer.WINDOWS_IMAGES)
 
 if __name__ == '__main__': unittest.main()

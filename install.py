@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install or undo the skin in an explicitly selected Thunderbird profile."""
+"""Install or undo the skin in an explicitly selected Thunderbird or Betterbird profile."""
 import argparse
 import hashlib
 import json
@@ -16,6 +16,10 @@ ADDON = 'extensions/inline-labels@local.gmail-skin.xpi'
 FILES = ['chrome/userChrome.css', 'chrome/gmail-inspired.css',
          'chrome/gmail-columns.css', 'user.js', ADDON]
 STATE = '.gmail-skin-install'
+# Betterbird is a Thunderbird fork that shares its profiles and add-on ID; the
+# installer must also refuse to write while it runs (Linux: betterbird-bin).
+CLIENT_PROCESS = r'(^|/)(thunderbird|betterbird)(-bin)?([[:space:]]|$)'
+WINDOWS_IMAGES = ('thunderbird.exe', 'betterbird.exe')
 
 
 def digest(path):
@@ -24,16 +28,18 @@ def digest(path):
 
 def ensure_closed():
     if sys.platform == 'win32':
-        result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq thunderbird.exe'],
-                                capture_output=True, text=True, check=True)
-        running = 'thunderbird.exe' in result.stdout.lower()
+        running = False
+        for image in WINDOWS_IMAGES:
+            result = subprocess.run(['tasklist', '/FI', f'IMAGENAME eq {image}'],
+                                    capture_output=True, text=True, check=True)
+            running = running or image in result.stdout.lower()
     else:
-        result = subprocess.run(['pgrep', '-if', r'(^|/)(thunderbird|Thunderbird)(-bin)?([[:space:]]|$)'], capture_output=True)
+        result = subprocess.run(['pgrep', '-if', CLIENT_PROCESS], capture_output=True)
         if result.returncode not in (0, 1):
-            raise RuntimeError('Could not check Thunderbird process state.')
+            raise RuntimeError('Could not check Thunderbird/Betterbird process state.')
         running = result.returncode == 0
     if running:
-        raise RuntimeError('Quit Thunderbird completely, then retry.')
+        raise RuntimeError('Quit Thunderbird or Betterbird completely, then retry.')
 
 
 def install(profile):
@@ -81,7 +87,7 @@ def install(profile):
         record['after'] = {name: digest(profile / name) for name in FILES}
         (state / 'state.json').write_text(json.dumps(record, indent=2))
         raise
-    print('Installed. Restart Thunderbird and review any add-on permission prompt.')
+    print('Installed. Restart Thunderbird/Betterbird and review any add-on permission prompt.')
     print('Local rollback snapshot:', state)
 
 
@@ -153,7 +159,7 @@ def uninstall(profile, allow_addon_change=False):
         text += '\nuser_pref("' + PREF + '", ' + record['preference'] + ');\n'
     prefs.write_text(text)
     state.rename(profile / (STATE + '-restored-' + datetime.now().strftime('%Y%m%d-%H%M%S-%f')))
-    print('Previous files and CSS preference restored. Restart Thunderbird.')
+    print('Previous files and CSS preference restored. Restart Thunderbird/Betterbird.')
 
 
 def main():
@@ -167,7 +173,7 @@ def main():
         parser.error('--allow-addon-change requires --uninstall')
     profile = args.profile.expanduser().resolve()
     if not (profile / 'prefs.js').is_file():
-        parser.error('Choose an existing Thunderbird profile containing prefs.js.')
+        parser.error('Choose an existing Thunderbird or Betterbird profile containing prefs.js.')
     try:
         ensure_closed()
         if args.uninstall:
