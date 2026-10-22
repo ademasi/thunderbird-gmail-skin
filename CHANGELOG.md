@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Betterbird support: the installer now refuses to run while Betterbird is open
+  (Linux `betterbird-bin`, macOS `Betterbird.app`, Windows `betterbird.exe`),
+  not only Thunderbird. Previously it could write into a profile Betterbird had open.
+- Pressing **L** in the message list anchors the Label picker to the selected
+  row (then the folder header bar) instead of the whole list. Anchored to the
+  full-height list, the panel flipped above it and was clipped to the header
+  strip, hiding every label, on Linux (seen in Betterbird 153.5).
+- Verified on Betterbird 153.5.0esr, Linux: list chips, snippets, row actions,
+  in-tab reader with Back/Previous/Next, Label picker, Classic and Vertical layouts.
+
 ## 0.8.0
 
 - Renamed the companion to **Thunder-G**, with a new icon, refined Gmail-style

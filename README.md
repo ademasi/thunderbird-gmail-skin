@@ -9,7 +9,7 @@
 > [!NOTE]
 > This independent project is not affiliated with Google and requires no Gmail account. It works with your existing email provider.
 > Cross-client synchronization of Exchange tags is not supported.
-> Compatibility with Windows and Linux has not yet been verified.
+> Windows is unverified. Linux is verified with **Betterbird 153.5** (see [Betterbird](#betterbird)).
 
 A compact inbox, existing tags as colored chips before the subject, and a conversation reader with a Back button and message actions.
 
@@ -68,9 +68,25 @@ Gmail-style snoozing is not implemented; mailmindr's icebox behavior needs its o
 Tag Popup is optional: the skin uses native Thunderbird tags, including any previously created with Tag Popup.
 These third-party add-ons are not bundled or automatically installed.
 
+## Betterbird
+
+[Betterbird](https://www.betterbird.eu/) is a Thunderbird fork with the same
+profile format and application ID, so the same XPI and installer work. Install
+exactly as below, pointing `install.py` at the Betterbird profile (on Linux
+usually under `~/.thunderbird`, shown in Help → Troubleshooting Information).
+The installer refuses to run while Betterbird is open.
+
+Checked on Betterbird **153.5.0esr** on Linux: tag chips, snippets and row
+actions in the list, the in-tab reader with Back/Previous/Next, the Label
+picker (**L**), and both the Classic and Vertical layouts. Betterbird defaults
+to Table View, which the skin needs. On first start, Betterbird holds the
+dropped-in add-on as disabled until you approve it; enabling it applies the skin
+immediately. The sender column follows Settings → General → Reading & Display →
+Message list → address display format; choose **Name only** for the Gmail look.
+
 ## Install
 
-1. In Thunderbird, open Help → Troubleshooting Information → Profile Folder and
+1. In Thunderbird or Betterbird, open Help → Troubleshooting Information → Profile Folder and
    locate the profile you want to customize. Quit Thunderbird completely.
 2. Download and extract the source ZIP, or clone this repository.
 3. In a terminal in this directory, run (replace the example path):
