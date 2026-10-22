@@ -1,1 +1,24 @@
-[{"namespace":"inlineLabels","functions":[{"name":"start","type":"function","async":true,"parameters":[]}]}]
+[
+  {
+    "namespace": "inlineLabels",
+    "functions": [
+      {
+        "name": "start",
+        "type": "function",
+        "async": true,
+        "parameters": []
+      },
+      {
+        "name": "setHideTodayPane",
+        "type": "function",
+        "async": true,
+        "parameters": [
+          {
+            "name": "hidden",
+            "type": "boolean"
+          }
+        ]
+      }
+    ]
+  }
+]
